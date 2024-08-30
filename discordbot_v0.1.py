@@ -16,26 +16,19 @@ from apscheduler.triggers.cron import CronTrigger
 import asyncio
 import aiohttp
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-# reminders timing
-# total time for sending the json
-total_time = 5 # minutes
+# total time for delay between reminders
+total_time = 3 # minutes
 # reminder coordonates
 # Get the time in hours and save it in x
-x = datetime.now().hour
-y = datetime.now().minute + 1 # minute
+
+x = 12
+y = 55
 
 # middle reminder
-xone = x
-yone = y + total_time - 2 # 2 minutes before the end of the total time
-# done reminder
-xtwo = x
-ytwo = y + total_time # at the end of the total time
-
-
-
-
+yone = y-5  # 5 minutes before the end of the total time
+xone = x-1 # 1 hour before the end of the total time
 # Get the token from a file
 token = ""
 with open("token.txt","r") as tokenFile:
@@ -49,7 +42,7 @@ class MyClient(discord.Client):
         print('Logged on as', self.user)
         # Schedule the weekly message
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(self.send_weekly_message, CronTrigger(day_of_week='wed', hour=x, minute=y))
+        scheduler.add_job(self.send_weekly_message, CronTrigger(day_of_week='fri', hour=x, minute=y))
         scheduler.start()
 
     # Respond to messages
@@ -68,13 +61,18 @@ class MyClient(discord.Client):
         await channel.send("Please do not forget to submit your JSON file with your availability for the next week.")
         # Schedule reminders
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(self.one_hour_left_message, CronTrigger(day_of_week='wed', hour=xone, minute=yone))
-        scheduler.add_job(self.time_elapsed_message, CronTrigger(day_of_week='wed', hour=xtwo, minute=ytwo))
+        scheduler.add_job(self.one_hour_left_message, CronTrigger(day_of_week='sat', hour=xone, minute=y)) # change the day of the week
+        scheduler.add_job(self.five_min_left_message, CronTrigger(day_of_week='sat', hour=x, minute=yone))
+        scheduler.add_job(self.time_elapsed_message, CronTrigger(day_of_week='sat', hour=x, minute=y))
         scheduler.start()
 
     async def one_hour_left_message(self):
         channel = self.get_channel(1277573107044974592)
-        await channel.send("Two minutes left to submit your JSON file!") # change the text back to one hour left
+        await channel.send("One hour left to submit your JSON file!") 
+
+    async def five_min_left_message(self):
+        channel = self.get_channel(1277573107044974592)
+        await channel.send("Five minutes left to submit your JSON file!") 
 
     async def time_elapsed_message(self):
         channel = self.get_channel(1277573107044974592)
@@ -83,31 +81,12 @@ class MyClient(discord.Client):
 
 
     async def read_channel_for_json_files(self, channel):
-        end_time = datetime.utcnow() + timedelta(minutes=total_time)
-        async for message in channel.history(after=datetime.utcnow(), oldest_first=True):
-            if datetime.utcnow() > end_time:
-                break
+        async for message in channel.history(oldest_first=True):
             for attachment in message.attachments:
                 if attachment.filename.endswith('.json'):
-                    accepted_time = datetime.utcnow() - timedelta(minutes=total_time+1)
-                    #await channel.send(f"Accepted time is {accepted_time.time()}")
-                    if message.created_at.date() == datetime.utcnow().date():
-                        #await channel.send("The message was sent today.")
-                        if message.created_at.time() >= accepted_time.time():
-                            #await channel.send("The message was sent at the right time.")
-                            await self.download_file(attachment)
-                            await channel.send(f"Downloaded {attachment.filename}")
-                            #delete the message with the json file
-                            await message.delete()
-                        else:
-                            await channel.send("The message was not sent at the right time.")
-                            await channel.send(f"NOT Downloaded {attachment.filename}")
-                    else:
-                        await channel.send("The message was not sent today.")
-                        await channel.send(f"NOT Downloaded {attachment.filename}")
-
-
-        channel = self.get_channel(1277573107044974592)
+                    await self.download_file(attachment)
+                    await channel.send(f"Downloaded and deleted: {attachment.filename} send by {message.author.display_name}")
+                    await message.delete()
         await channel.send("All JSON files have been downloaded.")
 
     async def download_file(self, attachment):
@@ -120,6 +99,11 @@ class MyClient(discord.Client):
                     print(f'Downloaded {attachment.filename}')
 
 
+# Functions for file management
+#def merge_files():
+    
+
+# Run the bot
 intents = discord.Intents.default()
 intents.message_content = True
 client = MyClient(intents=intents)
