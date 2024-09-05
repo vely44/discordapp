@@ -11,12 +11,16 @@ Extra features:
 Save data in a database. Update the database with new events and user availability every day.
 """
 import discord
+import json
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import asyncio
 import aiohttp
 import os
 from datetime import datetime, timedelta, timezone
+
+#import a file for extra functions
+import merge_files_script
 
 # total time for delay between reminders
 total_time = 3 # minutes
@@ -44,6 +48,41 @@ class MyClient(discord.Client):
         scheduler = AsyncIOScheduler()
         scheduler.add_job(self.send_weekly_message, CronTrigger(day_of_week='fri', hour=x, minute=y))
         scheduler.start()
+        #print Turn on message in the channel bot-meeting
+        channel = self.get_channel(1277573107044974592)
+        await channel.send("Bot is turned on!")
+        # print in the channel the time of the next due date
+        await channel.send(f"Next due date: {scheduler.get_jobs()[0].next_run_time + timedelta(days=1)}")
+    
+    
+    # Command : /meet 
+    # Format  : /meet <number of users> <user1> <user2> ... <userN>
+    # Description: Schedule a meeting with the specified users based on the availability of each user that is stored in a JSON file.
+    # Description: The bot will suggest 3 possible dates for the meeting after overlapping the availability of the users.
+    # Example : /meet 3 user1 user2  # Schedule a meeting with 3 users (yourself, user1, user2)
+    # 
+    # Input   : combined_data - list of JSON objects
+    #
+    #
+    # Output  : "You can meet with user1, user2, user3 at: "
+    # Output  : " <First Suggestion> "
+    # Output  : " <Second Suggestion> "
+    # Output  : " <Third Suggestion> "
+    #async def on_message(self, message):
+    #    if message.author == self.user:
+    #        return
+    #    if message.content.startswith('/meet'):
+            # Get the number of users and the list of users(store users in a list)
+    #        content = message.content.split(' ')
+    #        num_users = int(content[1])
+    #        users = content[2:]
+            # Open the combined JSON file and read the data
+            # The that is in this file has the following format:
+            # {
+            #
+            #
+            # }
+
 
     # Respond to messages
     async def on_message(self, message):
@@ -54,6 +93,8 @@ class MyClient(discord.Client):
         if message.content == 'ping':
             await message.channel.send('pong')
             print('Pong was used')
+            merge_files_script.merge_files()
+            print("All JSON files have been merged.")
     
     # Send reminder message to users in one channel every week sunday at 23:59
     async def send_weekly_message(self):
@@ -86,8 +127,12 @@ class MyClient(discord.Client):
                 if attachment.filename.endswith('.json'):
                     await self.download_file(attachment)
                     await channel.send(f"Downloaded and deleted: {attachment.filename} send by {message.author.display_name}")
-                    await message.delete()
+                    #delete the message if the message contains no text, no embeds, no other attachments BUT the json file
+                    if not message.content and not message.embeds and len(message.attachments) == 1:
+                        await message.delete()
         await channel.send("All JSON files have been downloaded.")
+        # Merge the JSON files and print a message in the terminal
+        merge_files_script.merge_files()
 
     async def download_file(self, attachment):
         async with aiohttp.ClientSession() as session:
@@ -99,8 +144,7 @@ class MyClient(discord.Client):
                     print(f'Downloaded {attachment.filename}')
 
 
-# Functions for file management
-#def merge_files():
+
     
 
 # Run the bot
