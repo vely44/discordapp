@@ -21,18 +21,16 @@ from datetime import datetime, timedelta, timezone
 
 #import a file for extra functions
 import merge_files_script
+#list of accepted user ids
+admin_user_id_list = [452424972090998804, 416556479374426122]
 
-# total time for delay between reminders
-total_time = 3 # minutes
-# reminder coordonates
-# Get the time in hours and save it in x
-
+#Time for the main reminders
 x = 12
 y = 55
 
 # middle reminder
 yone = y-5  # 5 minutes before the end of the total time
-xone = x-1 # 1 hour before the end of the total time
+xone = x-1  # 1 hour before the end of the total time
 # Get the token from a file
 token = ""
 with open("token.txt","r") as tokenFile:
@@ -54,47 +52,64 @@ class MyClient(discord.Client):
         # print in the channel the time of the next due date
         await channel.send(f"Next due date: {scheduler.get_jobs()[0].next_run_time + timedelta(days=1)}")
     
-    
-    # Command : /meet 
-    # Format  : /meet <number of users> <user1> <user2> ... <userN>
-    # Description: Schedule a meeting with the specified users based on the availability of each user that is stored in a JSON file.
-    # Description: The bot will suggest 3 possible dates for the meeting after overlapping the availability of the users.
-    # Example : /meet 3 user1 user2  # Schedule a meeting with 3 users (yourself, user1, user2)
-    # 
-    # Input   : combined_data - list of JSON objects
-    #
-    #
-    # Output  : "You can meet with user1, user2, user3 at: "
-    # Output  : " <First Suggestion> "
-    # Output  : " <Second Suggestion> "
-    # Output  : " <Third Suggestion> "
-    #async def on_message(self, message):
-    #    if message.author == self.user:
-    #        return
-    #    if message.content.startswith('/meet'):
-            # Get the number of users and the list of users(store users in a list)
-    #        content = message.content.split(' ')
-    #        num_users = int(content[1])
-    #        users = content[2:]
-            # Open the combined JSON file and read the data
-            # The that is in this file has the following format:
-            # {
-            #
-            #
-            # }
-
-
     # Respond to messages
     async def on_message(self, message):
         # don't respond to ourselves
         if message.author == self.user:
             return
-
+        
+        # Ping function
+        # Description: Respond to the message "ping" with "pong"
+        #
+        # Output  : "pong"
         if message.content == 'ping':
             await message.channel.send('pong')
             print('Pong was used')
             merge_files_script.merge_files()
             print("All JSON files have been merged.")
+
+
+        # Admin command for downloading the last file from the /downloads/combined folder
+        # Command : dl
+        # Description: Download the last file from the /downloads/combined folder
+        #
+        # Input   : None
+        #
+        # Output  : "Downloaded <filename>"
+        if message.content == 'dl':
+            # Check if the user is accepted to use the command
+            if message.author.id not in admin_user_id_list:
+                await message.channel.send("You are not allowed to use this command.")
+                await message.author.send("Your ID is: " + str(message.author.id))
+                return
+            else:
+                # Get the last file from the /downloads/combined folder
+                file_list = os.listdir('downloads/combined')
+                last_file = file_list[-1]
+                # Send a message to the user that sent the command via a private message
+                # Attach the file to the message
+                await message.author.send(f"Downloaded {last_file}")
+                await message.author.send(file=discord.File(f'downloads/combined/{last_file}'))
+                # Tell the channel that the file has been downloaded by the admin
+                await message.channel.send(f"Downloaded {last_file}")
+
+
+        # Command : /meet 
+        # Format  : /meet <number of users> <user1> <user2> ... <userN>
+        # Description: Schedule a meeting with the specified users based on the availability of each user that is stored in a JSON file.
+        # Description: The bot will suggest 3 possible dates for the meeting after overlapping the availability of the users.
+        # Example : /meet 3 user1 user2  # Schedule a meeting with 3 users (yourself, user1, user2)
+        # 
+        # Input   : combined_data - list of JSON objects
+        #
+        #
+        # Output  : "You can meet with user1, user2, user3 at: "
+        # Output  : " <First Suggestion> "
+        # Output  : " <Second Suggestion> "
+        # Output  : " <Third Suggestion> "
+        if message.content == "meet":
+            #Print wip message
+            await message.channel.send("Work in progress.")
     
     # Send reminder message to users in one channel every week sunday at 23:59
     async def send_weekly_message(self):
