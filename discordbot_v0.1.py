@@ -86,12 +86,16 @@ class MyClient(discord.Client):
                 # Get the last file from the /downloads/combined folder
                 file_list = os.listdir('downloads/combined')
                 last_file = file_list[-1]
+                llast_file = file_list[-2]
+                lllast_file = file_list[-3]
                 # Send a message to the user that sent the command via a private message
                 # Attach the file to the message
-                await message.author.send(f"Downloaded {last_file}")
+                await message.author.send(f"Downloaded the files")
                 await message.author.send(file=discord.File(f'downloads/combined/{last_file}'))
+                await message.author.send(file=discord.File(f'downloads/combined/{llast_file}'))
+                await message.author.send(file=discord.File(f'downloads/combined/{lllast_file}'))
                 # Tell the channel that the file has been downloaded by the admin
-                await message.channel.send(f"Downloaded {last_file}")
+                await message.channel.send(f"Done!")
 
 
         # Command : /meet 
@@ -158,9 +162,7 @@ class MyClient(discord.Client):
                         f.write(await response.read())
                     print(f'Downloaded {attachment.filename}')
 
-
-
-    
+ 
 
 # Run the bot
 intents = discord.Intents.default()

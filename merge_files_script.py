@@ -166,7 +166,7 @@ def merge_files():
         json.dump(combined_data_this_week, f, indent=4)
 
     # Week - Special scenario
-    combined_file_path_three = os.path.join(combined_dir, f'komb_{week_no_next_n}_next_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json')
+    combined_file_path_three = os.path.join(combined_dir, f'komb_{week_no_next_n}_nnext_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json')
     with open(combined_file_path_three, 'w') as f:
         json.dump(combined_data_nnext_week, f, indent=4)
 
@@ -183,4 +183,4 @@ def merge_files():
 
 
 # Call the function to merge the JSON files
-merge_files()
+#merge_files()
